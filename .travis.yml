@@ -1,0 +1,14 @@
+sudo: false
+language: ruby
+jdk:
+  - oraclejdk8
+rvm:
+  - jruby-1.7.26
+  - jruby-9.1.16.0
+before_install: gem install bundler -v 1.16.1
+env:
+  - delayed_job="~>4.1" activerecord="~>4.2.6"
+  - delayed_job="~>4.0.6" activerecord="~>4.2"
+  - delayed_job="~>3.0" # activerecord="~>3.2"
+  - delayed_job="~>2.1" activerecord="~>3.2.22"
+  - delayed_job="~>4.1.2" activerecord="~>4.2"
