@@ -1,4 +1,5 @@
 require File.expand_path('test_helper', File.dirname(__FILE__) + '/..')
+
 require 'delayed/threaded/worker'
 
 module Delayed
@@ -30,7 +31,7 @@ module Delayed
       begin
         reset_worker
         threads = start_threads(3) do
-          l1 = Delayed::JRubyWorker.lifecycle
+          l1 = Delayed::Threaded::Worker.lifecycle
           l2 = Delayed::Worker.lifecycle
           assert_same l2, l1
         end
@@ -48,7 +49,7 @@ module Delayed
       begin
         reset_worker
         threads = start_threads(5) do
-          Delayed::JRubyWorker.new
+          Delayed::Threaded::Worker.new
           sleep 0.1
           Delayed::Worker.new
         end
@@ -96,7 +97,7 @@ module Delayed
       test "works (integration)" do
         omit "#{@@plugin.inspect}" if @@plugin.is_a?(Exception) # 'plugin not supported on DJ < 4.1'
 
-        worker = Delayed::JRubyWorker.new({ :sleep_delay => 0.10 })
+        worker = Delayed::Threaded::Worker.new({ :sleep_delay => 0.10 })
         start = Time.now
         Delayed::Job.enqueue job = CronJob.new(:boo), cron: '0-59/1 * * * *'
         Delayed::Job.where('cron IS NOT NULL').first.update_column(:run_at, Time.now)

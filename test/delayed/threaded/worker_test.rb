@@ -2,9 +2,6 @@ require File.expand_path('test_helper', File.dirname(__FILE__) + '/../..')
 
 require 'delayed/threaded/worker'
 
-gem_spec = Gem.loaded_specs['delayed_job'] if defined? Gem
-puts "loaded gem 'delayed_job' '#{gem_spec.version.to_s}'" if gem_spec
-
 module Delayed
   class WorkerTest < TestImpl
 
@@ -246,13 +243,16 @@ module Delayed
     end
 
     def stub_Delayed_Job(mock = false)
-      Delayed.const_set :JobReal, Delayed::Job if Delayed.const_defined?(:Job)
+      if Delayed.const_defined?(:Job)
+        Delayed.const_set :JobReal, Delayed::Job
+        Delayed.send(:remove_const, :Job)
+      end
       Delayed.const_set :Job, const = ( mock ? mock('Delayed::Job') : stub(:clear_locks! => nil) )
       const
     end
 
     teardown do
-      if defined?(Delayed::Job) && defined?(Mocha) && Delayed::Job.is_a?(Mocha::Mock)
+      if Delayed.const_defined?(:Job) && defined?(Mocha) && Delayed::Job.is_a?(Mocha::Mock)
         Delayed.send(:remove_const, :Job)
         if Delayed.const_defined?(:JobReal)
           Delayed.const_set :Job, Delayed::JobReal
