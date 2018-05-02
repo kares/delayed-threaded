@@ -1,5 +1,6 @@
 require 'java'
 require 'delayed_job' unless defined?(Delayed::Worker)
+require 'socket' # due Socket.gethostname in Delayed::Worker#name
 
 require 'delayed/threaded/sleep_calculator'
 require 'delayed/threaded/sync_lifecycle'
@@ -8,7 +9,6 @@ module Delayed::Threaded
   # Threaded DJ worker implementation.
   # - inspired by Delayed::Command
   # - no daemons dependency + thread-safe
-  # @see #start_worker.rb
   class Worker < Delayed::Worker
 
     include SleepCalculator
