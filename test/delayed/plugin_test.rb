@@ -23,7 +23,7 @@ module Delayed
       # def self.included(klass)
       #   klass.send(:before_save, :set_next_run_at, :if => :cron_changed?)
       # end
-      Delayed::Backend::ActiveRecord::Job.reset_callbacks(:save)
+      Delayed::Backend::ActiveRecord::Job.skip_callback :save, :before, :set_next_run_at
       # Delayed::Backend::ActiveRecord::Job.attr_accessible(:cron)
       #
       # Delayed::Worker.plugins << DelayedCronJob::Plugin

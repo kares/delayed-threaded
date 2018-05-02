@@ -183,7 +183,11 @@ module Delayed
         def self.startup
           require 'active_record'
           require 'active_record/connection_adapters/jdbcsqlite3_adapter'
-          load 'delayed/active_record_schema.rb'
+          # NOTE: due 'heavy' DJ plugin interference its really hard to undo
+          # the plugin loading - which in case of a suite run (`rake test`)
+          # gets problematic. this tests should still work standalone !
+          #load 'delayed/active_record_schema.rb'
+          load 'delayed/active_record_schema_cron.rb'
           #class Delayed::Job < ActiveRecord::Base; end
           begin
             require 'delayed_job_active_record' # DJ 3.0+
@@ -221,11 +225,11 @@ module Delayed
         end
 
         test "works (integration)" do
-          worker = Delayed::Threaded::Worker.new({ :sleep_delay => 0.10 })
+          worker = Delayed::Threaded::Worker.new({ :sleep_delay => 0.05 })
 
           Delayed::Job.enqueue job = TestJob.new(:huu)
           Thread.new { worker.start }
-          sleep(0.20)
+          sleep(0.25)
           assert ! worker.stop?
 
           assert_equal :huu, TestJob.performed
