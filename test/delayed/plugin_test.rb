@@ -12,8 +12,7 @@ module Delayed
     end
 
     def self.load_plugin_like!
-      require 'active_record'
-      require 'active_record/connection_adapters/jdbcsqlite3_adapter'
+      load_active_record!
 
       require 'delayed_job_active_record' # DJ 3.0+
     end
@@ -76,8 +75,7 @@ module Delayed
       @@plugin = nil
 
       def self.startup
-        require 'active_record'
-        require 'active_record/connection_adapters/jdbcsqlite3_adapter'
+        load_active_record!
         load 'delayed/active_record_schema_cron.rb'
         Delayed::Job.reset_column_information
 

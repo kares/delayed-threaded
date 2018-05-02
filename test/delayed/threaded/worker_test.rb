@@ -181,8 +181,7 @@ module Delayed
       context "with backend" do
 
         def self.startup
-          require 'active_record'
-          require 'active_record/connection_adapters/jdbcsqlite3_adapter'
+          load_active_record!
           # NOTE: due 'heavy' DJ plugin interference its really hard to undo
           # the plugin loading - which in case of a suite run (`rake test`)
           # gets problematic. this tests should still work standalone !

@@ -22,9 +22,15 @@ else
 end
 
 if ENV['activerecord']
-  gem 'activerecord', ENV['activerecord'], :require => nil
+  gem 'activerecord', version = ENV['activerecord'], :require => nil
+  if version =~ /~?\s?4\.[12]/
+    gem 'activerecord-jdbc-adapter', '~> 1.3.20', :require => nil, :platform => :jruby
+  else
+    gem 'activerecord-jdbc-adapter', :require => nil, :platform => :jruby
+  end
 else
   gem 'activerecord', :require => nil # for tests
+  gem 'activerecord-jdbc-adapter', :require => nil, :platform => :jruby
 end
 
-gem 'activerecord-jdbcsqlite3-adapter', '~> 1.3.20', :require => nil, :platform => :jruby
+gem 'jdbc-sqlite3', '~> 3.20.1', :platform => :jruby
