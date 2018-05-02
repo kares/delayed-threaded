@@ -27,7 +27,7 @@ module Delayed
       # Delayed::Backend::ActiveRecord::Job.attr_accessible(:cron)
       #
       # Delayed::Worker.plugins << DelayedCronJob::Plugin
-      Delayed::Worker.plugins.delete DelayedCronJob::Plugin
+      Delayed::Worker.plugins.delete DelayedCronJob::Plugin if defined? DelayedCronJob::Plugin
     end
 
     setup do
