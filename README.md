@@ -18,30 +18,30 @@ and `bundle` or install it yourself as `gem install delayed-threaded`.
 ## Usage
 
 ```ruby
-Thread.start do
-  begin
-    options = { :quiet => true }
-    options[:queues] = (ENV['QUEUES'] || ENV['QUEUE'] || '').split(',')
-    options[:min_priority] = ENV['MIN_PRIORITY']
-    options[:max_priority] = ENV['MAX_PRIORITY']
-    # beyond `rake delayed:work` compatibility :
-    if read_ahead = ENV['READ_AHEAD'] # DEFAULT_READ_AHEAD = 5
-      options[:read_ahead] = read_ahead.to_i
-    end
-    if sleep_delay = ENV['SLEEP_DELAY'] # DEFAULT_SLEEP_DELAY = 5
-      options[:sleep_delay] = sleep_delay.to_f
-    end
-
-    worker = Delayed::Threaded::Worker.new(options)
-    worker.start
-  rescue Exception => e
-    msg = "FATAL #{e.inspect}"
-    if backtrace = e.backtrace
-      msg << ":\n  #{backtrace.join("\n  ")}"
-    end
-    STDERR.puts(msg)
+def start_worker
+  options = { :quiet => true }
+  options[:queues] = (ENV['QUEUES'] || ENV['QUEUE'] || '').split(',')
+  options[:min_priority] = ENV['MIN_PRIORITY']
+  options[:max_priority] = ENV['MAX_PRIORITY']
+  # beyond `rake delayed:work` compatibility :
+  if read_ahead = ENV['READ_AHEAD'] # DEFAULT_READ_AHEAD = 5
+    options[:read_ahead] = read_ahead.to_i
   end
+  if sleep_delay = ENV['SLEEP_DELAY'] # DEFAULT_SLEEP_DELAY = 5
+    options[:sleep_delay] = sleep_delay.to_f
+  end
+
+  worker = Delayed::Threaded::Worker.new(options)
+  worker.start
+rescue Exception => e
+  msg = "FATAL #{e.inspect}"
+  if backtrace = e.backtrace
+    msg << ":\n  #{backtrace.join("\n  ")}"
+  end
+  STDERR.puts(msg)
 end
+
+Thread.new { start_worker }
 ```
 
 ## Development
@@ -57,5 +57,5 @@ To install this gem onto your local machine, run `bundle exec rake install`.
 Copyright (c) 2018 [Karol Bucek](http://kares.org).
 See LICENSE (http://en.wikipedia.org/wiki/MIT_License) for details.
 
-[0]: https://github.com/kares/jruby-rack-worker
-[1]: https://github.com/collectiveidea/delayed_job
+[0]: https://github.com/collectiveidea/delayed_job
+[1]: https://github.com/kares/jruby-rack-worker
