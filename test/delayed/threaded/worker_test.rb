@@ -216,16 +216,19 @@ module Delayed
             @@performed = @param
           end
 
+          def self.performed; @@performed end
+
         end
 
         test "works (integration)" do
           worker = Delayed::Threaded::Worker.new({ :sleep_delay => 0.10 })
+
           Delayed::Job.enqueue job = TestJob.new(:huu)
           Thread.new { worker.start }
           sleep(0.20)
           assert ! worker.stop?
 
-          assert_equal :huu, TestJob.send(:class_variable_get, :'@@performed')
+          assert_equal :huu, TestJob.performed
 
           worker.stop
           sleep(0.15)

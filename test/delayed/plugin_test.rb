@@ -18,6 +18,18 @@ module Delayed
       require 'delayed_job_active_record' # DJ 3.0+
     end
 
+    def self.undo_plugin!
+      # Delayed::Backend::ActiveRecord::Job.send(:include, DelayedCronJob::Backend::UpdatableCron)
+      # def self.included(klass)
+      #   klass.send(:before_save, :set_next_run_at, :if => :cron_changed?)
+      # end
+      Delayed::Backend::ActiveRecord::Job.reset_callbacks(:save)
+      # Delayed::Backend::ActiveRecord::Job.attr_accessible(:cron)
+      #
+      # Delayed::Worker.plugins << DelayedCronJob::Plugin
+      Delayed::Worker.plugins.delete DelayedCronJob::Plugin
+    end
+
     setup do
       require 'logger'; require 'stringio'
       Delayed::Worker.logger = Logger.new(StringIO.new)
@@ -71,6 +83,8 @@ module Delayed
 
         @@plugin = begin; load_plugin!; rescue Exception => ex; ex end
       end
+
+      def self.shutdown; undo_plugin! end
 
       setup do
         Delayed::Worker.logger = Logger.new(STDOUT)
