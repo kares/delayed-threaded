@@ -92,14 +92,26 @@ module Delayed::Threaded
 
     def to_s; name; end
 
-    def thread_id
-      # NOTE: JRuby might set a bit long name for Thread.new { ... } code e.g.
-      # RubyThread-1: /home/[...]/src/test/ruby/delayed/jruby_worker_test.rb:163
-      if name = java.lang.Thread.currentThread.getName
-        if name.size > 100 && match = name.match(/(.*?)\:\s.*?[\/\\]+/)
-          match[1]
-        else
-          name
+    if defined? Thread.current.name
+      def thread_id
+        if ( name = Thread.current.name || '' ).empty?
+          name = java.lang.Thread.currentThread.getName
+          if name.size > 100 && match = name.match(/(.*?)\:\s.*?[\/\\]+/)
+            name = match[1]
+          end
+        end
+        name
+      end
+    else
+      def thread_id
+        # NOTE: JRuby might set a bit long name for Thread.new { ... } code e.g.
+        # RubyThread-1: /home/[...]/src/test/ruby/delayed/jruby_worker_test.rb:163
+        if name = java.lang.Thread.currentThread.getName
+          if name.size > 100 && match = name.match(/(.*?)\:\s.*?[\/\\]+/)
+            match[1]
+          else
+            name
+          end
         end
       end
     end
