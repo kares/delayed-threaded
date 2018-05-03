@@ -23,7 +23,7 @@ end
 
 if ENV['activerecord']
   gem 'activerecord', version = ENV['activerecord'], :require => nil
-  if version =~ /~?\s?4\.[12]/
+  if version =~ /~?\s?[34]\.[012]/
     gem 'activerecord-jdbc-adapter', '~> 1.3.20', :require => nil, :platform => :jruby
   else
     gem 'activerecord-jdbc-adapter', :require => nil, :platform => :jruby
