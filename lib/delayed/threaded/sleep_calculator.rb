@@ -24,7 +24,7 @@ module Delayed
         # (now - last) * 0.001 < opt_pause ? ( time + time / 11.1 ) : time
       end
 
-      def thread_count
+      def thread_count # TODO gross jruby-rack-worker heritage
         $worker_manager ? $worker_manager.thread_count : false
       end
 

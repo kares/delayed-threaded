@@ -217,10 +217,10 @@ module Delayed
         end
 
         test "works (integration)" do
-          worker = Delayed::Threaded::Worker.new({ :sleep_delay => 0.05 })
+          worker = Delayed::Threaded::Worker.new
 
           Delayed::Job.enqueue job = TestJob.new(:huu)
-          Thread.new { worker.start }
+          Thread.start { Thread.current.abort_on_exception = true; worker.start }
           sleep(0.15)
           assert ! worker.stop?
 

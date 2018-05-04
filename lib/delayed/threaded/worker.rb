@@ -35,18 +35,24 @@ module Delayed::Threaded
     # @patch make sure concurrent worker threads do not cause multiple initializations
     Delayed::Worker.extend SyncLifecycle if Delayed.const_defined? :Lifecycle
 
-    THREAD_LOCAL_ACCESSORS = [
-      :min_priority, :max_priority, :sleep_delay, :read_ahead, :queues, :exit_on_complete
-    ]
+    THREAD_LOCAL_ACCESSORS = [ :sleep_delay, :read_ahead, :exit_on_complete,
+                               :delay_jobs, :max_attempts, :default_log_level ]
     private_constant :THREAD_LOCAL_ACCESSORS if respond_to?(:private_constant)
+    #
     # due Delayed::Worker#initialize(options = {}) :
     #
     # [:min_priority, :max_priority, :sleep_delay, :read_ahead, :queues, :exit_on_complete].each do |option|
     #   self.class.send("#{option}=", options[option]) if options.key?(option)
     # end
+    #
+    # :min_priority, :max_priority, :queues, :max_run_time, :destroy_failed_jobs
+    #  ... are "always" global (accessed in backend)
+
+    # NOTE: should we warn when 'global' options are being passed in, so that users prefer (realize)
+    # they need to be setting the cattr instead e.g. `Delayed::Worker.queues = [ 'my_queue' ]` ... ?
 
     class Config
-      attr_accessor *THREAD_LOCAL_ACCESSORS
+      attr_accessor(*THREAD_LOCAL_ACCESSORS)
       def key?(name); ! instance_variable_get(:"@#{name}").nil? end
     end
 
@@ -62,19 +68,22 @@ module Delayed::Threaded
             superclass.#{name}
           end
         end
+        # and re-def instance accessors setup by cattr_accessor (from superclass) :        
+        def #{name}; self.class.#{name} end
+        def #{name}=(val); self.class.#{name} = val end
       EOS
     end
     # e.g. :
     #
-    #  def self.min_priority=(value)
-    #    (Thread.current[:delayed_jruby_worker_config] ||= Config.new).min_priority = value
+    #  def self.sleep_delay=(value)
+    #    (Thread.current[:delayed_threaded_worker_config] ||= Config.new).sleep_delay = value
     #  end
     #
     #  def self.min_priority
-    #    if (config = Thread.current[:delayed_jruby_worker_config]) && config.key?(:min_priority)
-    #      config.min_priority
+    #    if (config = Thread.current[:delayed_threaded_worker_config]) && config.key?(:sleep_delay)
+    #      config.sleep_delay
     #    else
-    #      Worker.min_priority
+    #      superclass.sleep_delay # Delayed::Worker.sleep_delay
     #    end
     #  end
 
