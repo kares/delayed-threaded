@@ -16,12 +16,6 @@ module Delayed
       end
     end
 
-    test "new works with a hash (legacy)" do
-      assert_nothing_raised do
-        Delayed::JRubyWorker.new({})
-      end
-    end
-
     test "name includes thread name" do
       name = java.lang.Thread.currentThread.name
       assert_match /#{name}/, new_worker.name
@@ -135,6 +129,7 @@ module Delayed
         begin
           worker = new_worker :sleep_delay => 11, :exit_on_complete => false
           assert_equal 11, worker.class.sleep_delay
+          assert_equal 11, worker.sleep_delay
           assert_equal false, worker.class.exit_on_complete if exit_on_cmplt
 
           assert_equal 5, Delayed::Worker.sleep_delay
@@ -142,6 +137,7 @@ module Delayed
           assert_equal nil, Delayed::Worker.exit_on_complete if exit_on_cmplt
 
           assert_equal true, worker.class.delay_jobs
+          assert_equal true, worker.delay_jobs
           assert_equal 25, worker.class.max_attempts
 
           assert_equal 11, worker.class.sleep_delay
@@ -200,9 +196,6 @@ module Delayed
           Delayed::Worker.logger = Logger.new(STDOUT)
           Delayed::Worker.logger.level = Logger::DEBUG
           ActiveRecord::Base.logger = Delayed::Worker.logger if $VERBOSE
-          #ActiveRecord::Base.class_eval do
-          #  def self.silence; yield; end # disable silence
-          #end
         end
 
         class TestJob
@@ -228,13 +221,13 @@ module Delayed
 
           Delayed::Job.enqueue job = TestJob.new(:huu)
           Thread.new { worker.start }
-          sleep(0.25)
+          sleep(0.15)
           assert ! worker.stop?
 
           assert_equal :huu, TestJob.performed
 
           worker.stop
-          sleep(0.15)
+          sleep(0.10)
           assert worker.stop?
         end
 
