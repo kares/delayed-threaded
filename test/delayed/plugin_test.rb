@@ -15,6 +15,8 @@ module Delayed
       load_active_record!
 
       require 'delayed_job_active_record' # DJ 3.0+
+
+      require 'delayed/active_record/release_connection_plugin.rb'
     end
 
     def self.undo_plugin!
@@ -75,6 +77,10 @@ module Delayed
       @@plugin = nil
 
       def self.startup
+        Delayed::Worker.logger = Logger.new(STDOUT)
+        Delayed::Worker.logger.level = Logger::DEBUG
+        ActiveRecord::Base.logger = Delayed::Worker.logger if $VERBOSE
+
         load_active_record!
         load 'delayed/active_record_schema_cron.rb'
         Delayed::Job.reset_column_information
@@ -84,20 +90,13 @@ module Delayed
 
       def self.shutdown; undo_plugin! end
 
-      setup do
-        Delayed::Worker.logger = Logger.new(STDOUT)
-        Delayed::Worker.logger.level = Logger::DEBUG
-        ActiveRecord::Base.logger = Delayed::Worker.logger if $VERBOSE
-      end
+      teardown { $worker = nil }
 
       class CronJob
 
-        def initialize(param)
-          @param = param
-        end
+        def initialize(param); @param = param end
 
         @@performed = nil
-
         def perform
           puts "#{self}#perform param = #{@param}"
           raise "already performed" if @@performed
@@ -109,26 +108,97 @@ module Delayed
       test "works (integration)" do
         omit "#{@@plugin.inspect}" if @@plugin.is_a?(Exception) # 'plugin not supported on DJ < 4.1'
 
-        worker = Delayed::Threaded::Worker.new({ :sleep_delay => 0.10 })
+        Thread.start do
+          $worker = Delayed::Threaded::Worker.new({ :sleep_delay => 0.10 })
+
+          Thread.current.abort_on_exception = true;
+          $worker.start
+        end
+
         start = Time.now
         Delayed::Job.enqueue job = CronJob.new(:boo), cron: '0-59/1 * * * *'
         Delayed::Job.where('cron IS NOT NULL').first.update_column(:run_at, Time.now)
-        Thread.new { worker.start }
+
         sleep(0.20)
-        assert ! worker.stop?
+        assert ! $worker.stop?
 
         assert_equal :boo, CronJob.send(:class_variable_get, :'@@performed')
 
-        sleep(0.20)
+        sleep(0.30)
         # it's re-scheduled for next run :
         assert job = Delayed::Job.where('cron IS NOT NULL').first
-        puts job.inspect if $VERBOSE
+        #puts job.inspect if $VERBOSE
         min = start.min; min_next = min + 1; min_next = 0 if min_next == 60
         assert [min, min_next].include?(job.run_at.min)
 
-        worker.stop
+        $worker.stop
         sleep(0.15)
-        assert worker.stop?
+        assert $worker.stop?
+      end
+
+      class SampleJob
+
+        def initialize(param); @param = param end
+
+        @@performed = nil
+        def perform
+          puts "#{self}#perform param = #{@param}"
+          @@performed = @param
+        end
+
+        def self.performed; @@performed end
+
+      end
+
+      class HookableWorker < Delayed::Threaded::Worker
+
+        NIL = lambda { |_| }
+
+        def before_work_off(&hook); @before_work_off = hook end
+        def after_work_off(&hook); @after_work_off = hook end
+
+        def work_off(num = 100)
+          (@before_work_off ||= NIL).call(self)
+          super(num).tap do
+            (@after_work_off ||= NIL).call(self)
+          end
+        end
+
+        def sleep(delay)
+          puts "\nsleep(#{delay})" if $VERBOSE
+          super(delay)
+        end
+
+      end
+
+      test "clears thread-bound AR connection (integration)" do
+        omit "#{@@plugin.inspect}" if @@plugin.is_a?(Exception) # 'plugin not supported on DJ < 4.1'
+
+        Delayed::Job.enqueue job = SampleJob.new(:muu1)
+
+        Thread.start do
+          $worker = HookableWorker.new(:sleep_delay => 0.05) # thread-local
+          $worker.before_work_off do
+            puts "\nbefore_work_off hook" if $VERBOSE
+            assert ! ActiveRecord::Base.connection_pool.active_connection?
+          end
+
+          Thread.current.abort_on_exception = true
+          assert ! ActiveRecord::Base.connection_pool.active_connection?
+          $worker.start
+          assert ! ActiveRecord::Base.connection_pool.active_connection?
+        end
+        sleep(0.20)
+
+        assert_equal :muu1, SampleJob.performed
+
+        Delayed::Job.enqueue job = SampleJob.new(:muu2)
+
+        sleep(0.20)
+
+        assert_equal :muu2, SampleJob.performed
+
+        $worker.stop
       end
 
     end
