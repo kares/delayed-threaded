@@ -100,6 +100,16 @@ module Delayed
       assert_equal 'thread:worker_2', parts[3]
     end
 
+    test "worker thread_id" do
+      thread_id = Thread.start { new_worker.thread_id }.value
+      assert ! thread_id.empty? # e.g. "Ruby-0-Thread-1: test/delayed/threaded/worker_test.rb:105"
+
+      if defined? Thread.current.name
+        thread_id = Thread.start { Thread.current.name = 'worker-0'; new_worker.thread_id }.value
+        assert_equal 'worker-0', thread_id # let's assume user knows what his doing setting Thread#name
+      end
+    end
+
     test "to_s is worker name" do
       worker = new_worker
       worker.name_prefix = '42'
@@ -170,6 +180,16 @@ module Delayed
 
       assert_equal 5, Delayed::Worker.sleep_delay
       assert_equal nil, Delayed::Worker.exit_on_complete if exit_on_cmplt
+    end
+
+    test "preserver DJ::Worker API" do
+      worker = new_worker
+      job = mock('delayed-job')
+      job.expects(:max_attempts).returns(nil)
+      job.expects(:max_run_time).returns(nil)
+
+      assert_equal Delayed::Worker::DEFAULT_MAX_ATTEMPTS, worker.max_attempts(job)
+      assert_equal Delayed::Worker::DEFAULT_MAX_RUN_TIME, worker.max_run_time(job)
     end
 
     begin

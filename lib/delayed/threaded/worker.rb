@@ -69,9 +69,12 @@ module Delayed::Threaded
           end
         end
         # and re-def instance accessors setup by cattr_accessor (from superclass) :        
-        def #{name}; self.class.#{name} end
         def #{name}=(val); self.class.#{name} = val end
       EOS
+      unless [:max_attempts, :max_run_time].include?(name) # DJ::Worker#max_run_time(job)
+        # re-def instance accessors setup by cattr_accessor (from superclass)
+        class_eval("def #{name}; self.class.#{name} end", __FILE__, __LINE__)
+      end
     end
     # e.g. :
     #
