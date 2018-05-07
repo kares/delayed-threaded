@@ -36,6 +36,10 @@ module Delayed
       Delayed::Worker.logger = Logger.new(StringIO.new)
     end
 
+    test "hooks up SyncLifecycle" do
+      assert Delayed::Worker.is_a?(Delayed::Threaded::SyncLifecycle)
+    end if defined? Delayed::Plugin
+
     test "only one lifecycle instance is created" do
       self.class.load_plugin_like!
 
@@ -119,7 +123,7 @@ module Delayed
         Delayed::Job.enqueue job = CronJob.new(:boo), cron: '0-59/1 * * * *'
         Delayed::Job.where('cron IS NOT NULL').first.update_column(:run_at, Time.now)
 
-        sleep(0.20)
+        sleep(0.25)
         assert ! $worker.stop?
 
         assert_equal :boo, CronJob.send(:class_variable_get, :'@@performed')
