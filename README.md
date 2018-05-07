@@ -55,6 +55,17 @@ the connections after work (as the worker sleeps), setup as a plugin using :
 require 'delayed/active_record/release_connection_plugin.rb'
 ````
 
+and a somehow fail-"safer" lock clearing mechanism in case of backend errors
+
+```ruby
+# Replace DJ's default ClearLocks plugin with a fail-safe version 
+# e.g. when a connection goes down in the middle of job processing, 
+# `Delayed::Job.clear_locks!` causes a double fault to propagate.
+require 'delayed/fail_safe/clear_locks_plugin.rb'
+```
+
+NOTE: **delayed_job** might not be the right tool for a fail-safe worker job.
+
 ## Development
 
 After checking out the repo, run `bin/setup` to install dependencies.
